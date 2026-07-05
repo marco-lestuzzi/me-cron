@@ -1,0 +1,10 @@
+{
+	"enabled": false,
+	"interval_minutes": 60,
+	"description": "Checks Hacker News top stories every hour and notifies new entries above a score threshold",
+	"params": {
+		"watch_count": 30,
+		"score_threshold": 100,
+		"max_notify": 3
+	}
+}
