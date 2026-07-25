@@ -62,6 +62,8 @@ function _send_mail_system($cfg, $subject, $body, $body_html)
 // Send with smtp driver
 function _send_mail_smtp($cfg, $subject, $body, $body_html)
 {
+	global $_external_api_timeout;
+
 	$host = isset($cfg['host']) ? $cfg['host'] : '';
 	$port = intval(isset($cfg['port']) ? $cfg['port'] : 587);
 	$encryption = strtolower(isset($cfg['encryption']) ? $cfg['encryption'] : '');
@@ -77,11 +79,12 @@ function _send_mail_smtp($cfg, $subject, $body, $body_html)
 
 	$socket_host = ($encryption === 'ssl') ? "ssl://" . $host : $host;
 
-	$socket = @fsockopen($socket_host, $port, $errno, $errstr, 10);
+	$socket = @fsockopen($socket_host, $port, $errno, $errstr, $_external_api_timeout);
 	if (!$socket) {
 		trigger_error("lib_mail SMTP: connection failed — " . $errstr . " (" . $errno . ")", E_USER_WARNING);
 		return false;
 	}
+	stream_set_timeout($socket, $_external_api_timeout);
 
 	$read = function () use ($socket) {
 		$response = '';
@@ -151,6 +154,7 @@ function _send_mail_smtp($cfg, $subject, $body, $body_html)
 
 	$boundary = uniqid('mecron_', true);
 	$from_header = $from_name ? '"' . addslashes($from_name) . '" <' . $from_addr . '>' : $from_addr;
+	$subject = str_replace(array("\r", "\n"), '', $subject);
 
 	$headers = "";
 	$payload = "";

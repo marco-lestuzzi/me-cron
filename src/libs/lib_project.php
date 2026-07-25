@@ -75,17 +75,18 @@ function should_run_now($module_dir, $config)
 
 function launch_parallel($modules)
 {
-	global $_url_base, $_curl_timeout;
+	global $_url_base, $_mecron_token_curl;
 	$mh = curl_multi_init();
 	$handles = array();
 
 	foreach ($modules as $module_name) {
-		$url = $_url_base . '/mecron.php?script=' . urlencode($module_name);
+		$url = $_url_base . '/mecron.php?script=' . urlencode($module_name) . '&token=' . urlencode($_mecron_token_curl);
 		$ch = curl_init($url);
 
 		curl_setopt_array($ch, array(
 			CURLOPT_RETURNTRANSFER => true,
-			CURLOPT_TIMEOUT => $_curl_timeout,
+			CURLOPT_CONNECTTIMEOUT_MS => 1000,
+			CURLOPT_TIMEOUT_MS => 1500,
 			CURLOPT_SSL_VERIFYPEER => true,
 			CURLOPT_SSL_VERIFYHOST => 2,
 			CURLOPT_FOLLOWLOCATION => false,
@@ -113,9 +114,13 @@ function launch_parallel($modules)
 	curl_multi_close($mh);
 }
 
-function run_single_script($script_name)
+function run_single_script($script_name, $token)
 {
-	global $_script_dir;
+	global $_script_dir, $_mecron_token_curl;
+	
+	if ($token != $_mecron_token_curl) {
+		return;
+	}
 
 	$script_name = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $script_name);
 

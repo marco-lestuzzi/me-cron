@@ -10,7 +10,7 @@
 
 function send_to_telegram_line($testo)
 {
-	global $_telegram_bot_token, $_telegram_chat_id;
+	global $_telegram_bot_token, $_telegram_chat_id, $_external_api_timeout;
 	$curl = curl_init();
 
 	$testo = urlencode($testo);
@@ -20,7 +20,7 @@ function send_to_telegram_line($testo)
 		CURLOPT_RETURNTRANSFER => true,
 		CURLOPT_ENCODING => '',
 		CURLOPT_MAXREDIRS => 10,
-		CURLOPT_TIMEOUT => 15,
+		CURLOPT_TIMEOUT => $_external_api_timeout,
 		CURLOPT_FOLLOWLOCATION => true,
 		CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
 		CURLOPT_CUSTOMREQUEST => 'GET',
@@ -41,7 +41,7 @@ function send_to_telegram_line($testo)
 
 function send_to_telegram_message($testo, $html = false)
 {
-	global $_telegram_bot_token, $_telegram_chat_id;
+	global $_telegram_bot_token, $_telegram_chat_id, $_external_api_timeout;
 	$curl = curl_init();
 
 	$data = array(
@@ -57,7 +57,7 @@ function send_to_telegram_message($testo, $html = false)
 		CURLOPT_RETURNTRANSFER => true,
 		CURLOPT_ENCODING => '',
 		CURLOPT_MAXREDIRS => 10,
-		CURLOPT_TIMEOUT => 15,
+		CURLOPT_TIMEOUT => $_external_api_timeout,
 		CURLOPT_FOLLOWLOCATION => true,
 		CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
 		CURLOPT_CUSTOMREQUEST => 'POST',

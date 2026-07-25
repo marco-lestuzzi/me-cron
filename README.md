@@ -26,7 +26,10 @@ Each time `mecron.php` is invoked, it runs through three stages:
 2. **Parallel launch** - fires off all candidate modules simultaneously via concurrent HTTP requests (PHP `curl_multi`), so slow tasks don't block fast ones.
 3. **Isolated execution** - each module runs in its own context with exclusive file locking to prevent overlapping runs, persistent state stored in a local `memory.json`, and its own error handling.
 
-Under the hood, step 2 works by having `mecron.php` call itself over HTTP once per candidate module, as `mecron.php?script=<module_name>`. That second call is what actually runs the module (step 3) - see [Concurrency protection](#concurrency-protection) below for what guards that entry point.
+Under the hood, step 2 works by having `mecron.php` call itself over HTTP once per candidate module, as `mecron.php?script=<module_name>&token=<secret>`. That second call is what actually runs the module (step 3) - see [Concurrency protection](#concurrency-protection) below for what guards that entry point.
+
+These internal calls are fire-and-forget: the orchestrator only waits up to ~1.5 seconds to trigger each one, then moves on (it does not wait for the module to finish). The triggered module keeps running server-side past that point regardless, thanks to `ignore_user_abort(true)` and a configurable hard cap (`set_time_limit($_module_max_execution_time)` in `config.php`).
+In practice this means the cron tick returning quickly doesn't imply every module has completed - check `memory.json` (or the info dashboard) for actual status.
 
 ---
 
@@ -143,7 +146,9 @@ Each module gets a `memory.json` that survives between executions. System fields
 
 Parallel launches mean two invocations of the same module could theoretically overlap if a run is slow and the next cron tick fires before it finishes. meCron prevents this with an exclusive `flock()` on `memory.json`: if the lock is already held, the new invocation exits silently without doing anything.
 
-`mecron.php?script=<module_name>` is a real, directly-callable URL (it's how the orchestrator triggers each module), not an internal-only path. Both entry points - the scheduled orchestrator and a direct `?script=` call - go through the same `enabled` and `interval_minutes` checks before a module is allowed to run, so hitting it directly can't force a disabled module to run, or force an enabled one to run more often than its configured interval.
+`mecron.php?script=<module_name>` is a real, directly-callable URL (it's how the orchestrator triggers each module), not an internal-only path, so it needs protection of its own. Every call must include a `token` parameter matching `$_mecron_token_curl` from `config.php`; without a valid token the request is silently ignored. On top of that, both entry points - the scheduled orchestrator and a direct `?script=` call - go through the same `enabled` and `interval_minutes` checks before a module is allowed to run, so even with a valid token, hitting the endpoint directly can't force a disabled module to run, or force an enabled one to run more often than its configured interval.
+
+Set `$_mecron_token_curl` to a long random string, just like `$_mecron_info_password` - it's the only thing standing between this endpoint and the public internet.
 
 ---
 
@@ -233,6 +238,8 @@ cd mecron/src
 cp config.example.php config.php
 # fill in your credentials and data in config.php
 ```
+
+Make sure `$_mecron_info_password` and `$_mecron_token_curl` are both set to long random strings before deploying - they're the only protection on the info dashboard and on the internal module-trigger endpoint, respectively. The defaults for `$_module_max_execution_time` (900s) and `$_external_api_timeout` (15s) work for most setups, but can be tuned per host.
 
 Upload the contents of `src/` to your hosting - everything meCron needs to run lives there.
 

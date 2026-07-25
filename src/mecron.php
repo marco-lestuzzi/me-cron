@@ -24,11 +24,13 @@ if (!file_exists('config.php')) {
 
 require 'config.php';
 
+ignore_user_abort(true);
+set_time_limit($_module_max_execution_time);
+
 date_default_timezone_set($_default_timezone);
 
 $_path_base = dirname(__FILE__);
 $_script_dir = $_path_base . '/cron-scripts';
-$_curl_timeout = 180;
 $_lock_handle = null;
 $_url_base = detect_base_url();
 
@@ -42,8 +44,8 @@ if (isset($_GET['info'])) {
 }
 
 // Single module execution
-if (isset($_GET['script'])) {
-	run_single_script($_GET['script']);
+if (isset($_GET['script']) && isset($_GET['token'])) {
+	run_single_script($_GET['script'], $_GET['token']);
 	exit;
 }
 
