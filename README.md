@@ -1,4 +1,5 @@
 # meCron
+_`/ˈmɛkron/`_
 
 A lightweight, modular cron engine for PHP shared hosting environments.
 
